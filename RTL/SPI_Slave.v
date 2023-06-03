@@ -42,14 +42,10 @@ module SPI_SLAVE
     // State Memory
     always @(posedge CLK , negedge rst_n) begin
         if (!rst_n) begin
-
             CS <= IDLE;
-
         end
         else begin
-
             CS <= NS;
-
         end
     end
 
@@ -60,79 +56,55 @@ module SPI_SLAVE
         IDLE : begin
 
             if (!SS_n) begin
-
                 NS = CHK_CMD;
-
             end
-            else begin
-                
+            else begin               
                 NS = IDLE;
-
             end
 
         end
         CHK_CMD : begin
 
             if (!SS_n && !MOSI) begin
-
                 NS = WRITE;
-
             end
-            else if (!SS_n && MOSI && read_flag) begin
-                
+            else if (!SS_n && MOSI && read_flag) begin                
                 NS = READ_DATA;
-
             end
             else if (!SS_n && MOSI && !read_flag) begin
-
                 NS = READ_ADDR;
-
             end
-            else begin
-                
+            else begin                
                 NS = IDLE;
-
             end
 
         end
         WRITE : begin
-
             if(!SS_n) begin
 
                 NS = WRITE;
-
             end
             else begin
-                
                 NS = IDLE;
-
             end
         end
         READ_ADDR : begin
 
             if (!SS_n) begin
-
                 NS = READ_ADDR;
-
             end
-            else begin
-                
+            else begin               
                 NS = IDLE;
-
             end
 
         end
         READ_DATA : begin
 
             if (!SS_n) begin
-
                 NS = READ_DATA;
-
             end
-            else begin
-                
+            else begin               
                 NS = IDLE;
-
             end
 
         end
@@ -144,20 +116,14 @@ module SPI_SLAVE
 
     always @(posedge CLK,negedge rst_n) begin
         
-        if (!rst_n) begin
-            
+        if (!rst_n) begin 
             read_flag <= 0;
-
         end
-        else if (CS == READ_DATA && conv_counter == 0) begin
-            
+        else if (CS == READ_DATA && conv_counter == 0) begin   
             read_flag <= 0;
-
         end
-        else if (CS == READ_ADDR && conv_counter == 8) begin
-            
+        else if (CS == READ_ADDR && conv_counter == 8) begin   
             read_flag <= 1;
-
         end
 
     end
@@ -169,21 +135,15 @@ module SPI_SLAVE
         count_en = 0;
         
         if (CS == CHK_CMD) begin
-            
             count_rst = 1;
-
         end
         else if ( (CS == WRITE || (CS == READ_DATA) || CS == READ_ADDR) && !conv_flag) begin
-            
             count_en = 1;
-
         end
 
-        else begin
-            
+        else begin 
             count_rst = 0;
             count_en = 0;
-
         end
 
     end
@@ -192,40 +152,28 @@ module SPI_SLAVE
     always @(posedge CLK , negedge rst_n) begin
 
         if (!rst_n) begin
-
             rx_data <= 0;
             MISO    <= 0;
-
         end
         else if ( (CS == WRITE) || (CS == READ_ADDR) || (CS == READ_DATA && !tx_valid) ) begin
-
             rx_data[conv_counter-9] <= MOSI;
-
         end
         else if (CS == READ_DATA && tx_valid && !conv_flag) begin
-
             MISO <= tx_data[conv_counter];
-
         end
 
     end
 
     always @(posedge CLK,negedge rst_n) begin
         
-        if (!rst_n) begin
-            
+        if (!rst_n) begin            
             conv_counter <= 18;
-
         end
-        else if (count_rst) begin
-            
+        else if (count_rst) begin            
             conv_counter <= 18;
-
         end
-        else if (count_en) begin
-            
+        else if (count_en) begin            
             conv_counter <= conv_counter - 1;
-
         end
 
     end
