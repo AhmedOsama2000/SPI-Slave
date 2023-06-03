@@ -1,11 +1,11 @@
 import wrapper_package::*;
 module spi_Wrapper_tb;
 
-	logic		clk_tb;
-	logic		rst_n_tb;
-	logic 		MOSI_tb;
-	logic 		MISO_tb;
-	logic 		SS_n_tb;
+	bit	  clk_tb;
+	logic rst_n_tb;
+	logic MOSI_tb;
+	logic MISO_tb;
+	logic SS_n_tb;
 
 	// FSM states
 	fsm_states fsm;
@@ -35,26 +35,25 @@ module spi_Wrapper_tb;
 
 	localparam test_cases = 5;
 
-	initial begin
-		
-		clk_tb = 0;
-		forever begin
-			#5
-			clk_tb = ~clk_tb;
-			spiData.clk = clk_tb;
-		end 
-	end
-
+    always begin
+        #5
+        clk_tb = ~clk_tb;
+        spiData.clk = clk_tb;
+    end 
 
 	initial begin
 
 		spiData = new;
 		addr_sent2RAM  = new[test_cases];
 		data_retrieved = new[test_cases];
-
+        
+        // Initialize the inputs
+		MOSI_tb = 1'b0;
+		SS_n_tb = 1'b0;
+		
 		// Perform a RST
 		RST;
-
+		
 		// Perform write operation with random addresses and random data
 		for (int i = 0;i < test_cases;i++) begin
  			
@@ -250,41 +249,33 @@ end
 	end
 
 	task RST;
-
-		@(negedge clk_tb)
-		rst_n_tb = 0;
-		spiData.rst_n = rst_n_tb;
-		fsm = IDLE;
-		spiData.state = fsm;
-		@(negedge clk_tb)
-		rst_n_tb = 1;
-		spiData.rst_n = rst_n_tb;
-
+        rst_n_tb = 0;
+        spiData.rst_n = rst_n_tb;
+        fsm = IDLE;
+        spiData.state = fsm;
+        repeat (20) @(negedge clk_tb);
+        rst_n_tb = 1;
+        spiData.rst_n = rst_n_tb;
 	endtask
 
 	task START_COMM;
-
 		@(negedge clk_tb)
 		SS_n_tb = 0;
 		spiData.SS_n = SS_n_tb;
 		fsm = CHK_CMD;
 		spiData.state = fsm;
 		@(negedge clk_tb);
-
 	endtask
 
 	task END_COMM;
-
 		@(negedge clk_tb)
 		SS_n_tb = 1;
 		spiData.SS_n = SS_n_tb;
 		fsm = IDLE;
 		spiData.state = fsm;
-
 	endtask
 
 	task WRT_ADDR;
-
 		REQ_COMM = 1;
 		
 		START_COMM;
@@ -297,11 +288,9 @@ end
 		MOSI_tb = 0;
 
 		REQ_COMM = 0;
-		
 	endtask
 
 	task WRT_DATA;
-
 		REQ_COMM = 1;
 		
 		START_COMM;
@@ -313,12 +302,10 @@ end
 		@(negedge clk_tb)
 		MOSI_tb = 1;
 
-		REQ_COMM = 0;
-		
+		REQ_COMM = 0;	
 	endtask
 
 	task RD_ADDR;
-
 		REQ_COMM = 1;
 		
 		START_COMM;
@@ -331,11 +318,9 @@ end
 		MOSI_tb = 0;
 		
 		REQ_COMM = 0;
-		
 	endtask
 
 	task RD_DATA;
-
 		REQ_COMM = 1;
 
 		START_COMM;
@@ -347,8 +332,7 @@ end
 		@(negedge clk_tb)
 		MOSI_tb = 1;
 
-		REQ_COMM = 0;
-		
+		REQ_COMM = 0;		
 	endtask
 
 	task CHK_READ (input [7:0] data_retrieved,data_expected);
