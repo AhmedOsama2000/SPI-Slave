@@ -32,13 +32,11 @@ package wrapper_package;
 			}
 
 			CMDs_cp: coverpoint state iff (rst_n) {
-
-				bins idle2_chk_cmd = (IDLE => CHK_CMD);
+				bins idle2_chk_cmd  = (IDLE => CHK_CMD);
 				bins WRT_addr2_IDLE = (WRITE_ADDR => IDLE);
 				bins WRT_data2_IDLE = (WRITE_DATA => IDLE);
-				bins RD_addr2_IDLE = (READ_ADDR => IDLE);
-				bins RD_data2_IDLE = (READ_DATA => IDLE);
-
+				bins RD_addr2_IDLE  = (READ_ADDR => IDLE);
+				bins RD_data2_IDLE  = (READ_DATA => IDLE);
 			}
 
 		endgroup
