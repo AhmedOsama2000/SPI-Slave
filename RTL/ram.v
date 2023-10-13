@@ -28,38 +28,23 @@ reg [ADDR_SIZE-1:0] address;
 
 always @(posedge CLK , negedge rst_n) begin
 
-    if (!rst_n) begin
-
-        for (i = 0;i < MEM_DEPTH;i = i + 1) begin
-
-            RAM[i] <= 0;
-
-        end 
-
-        dout <= 0;
+    if (!rst_n) begin 
+        address  <= 8'b0;
+        dout     <= 8'b0;
         tx_valid <= 0;
-
     end
     else if (rx_valid) begin
-
         case (din[9:8]) 
-
             // Write Address
             2'b00: begin address      <= din[7:0];     tx_valid <= 0; end
-
             // Write Data 
             2'b01: begin RAM[address] <= din[7:0];     tx_valid <= 0; end
-
             // Read Address
             2'b10: begin address      <= din[7:0];     tx_valid <= 0; end
-
             // Read Data
             2'b11: begin dout         <= RAM[address]; tx_valid <= 1; end
-
         endcase
-
     end
-
 end
 
 endmodule

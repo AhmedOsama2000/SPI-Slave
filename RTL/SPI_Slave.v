@@ -25,15 +25,14 @@ module SPI_SLAVE
     localparam READ_DATA = 3'b100;
     
     // to check wether read data or send read address
-    reg read_flag;
+    reg       read_flag;
 
-    // Flag to Check serial <==> parallel is done
-    wire conv_flag;
-    reg  count_rst;
-    reg  count_en;
+    // En rx/tx serializers , enable ser counter
+    reg rx_rec_en;
+    reg tx_ser_en;
 
     // Counter to convert serial <==> parallel
-    reg [4:0] conv_counter;
+    reg [3:0] ser_cnt;
 
     // Current and Next state bits
     reg [2:0] CS;
@@ -51,7 +50,6 @@ module SPI_SLAVE
 
     // Next State Logic
     always @(*) begin
-
         case (CS)
         IDLE : begin
 
@@ -61,10 +59,8 @@ module SPI_SLAVE
             else begin               
                 NS = IDLE;
             end
-
         end
         CHK_CMD : begin
-
             if (!SS_n && !MOSI) begin
                 NS = WRITE;
             end
@@ -77,7 +73,6 @@ module SPI_SLAVE
             else begin                
                 NS = IDLE;
             end
-
         end
         WRITE : begin
             if(!SS_n) begin
@@ -89,24 +84,20 @@ module SPI_SLAVE
             end
         end
         READ_ADDR : begin
-
             if (!SS_n) begin
                 NS = READ_ADDR;
             end
             else begin               
                 NS = IDLE;
             end
-
         end
         READ_DATA : begin
-
             if (!SS_n) begin
                 NS = READ_DATA;
             end
             else begin               
                 NS = IDLE;
             end
-
         end
         default : NS = IDLE;
 
@@ -114,71 +105,56 @@ module SPI_SLAVE
 
     end
 
+    // Couunter to Detect address has been recieved and transit to recieve data state
     always @(posedge CLK,negedge rst_n) begin
-        
         if (!rst_n) begin 
-            read_flag <= 0;
+            read_flag     <= 1'b0;
         end
-        else if (CS == READ_DATA && conv_counter == 0) begin   
-            read_flag <= 0;
+        else if (CS == READ_ADDR) begin   
+            read_flag     <= 1'b1;
         end
-        else if (CS == READ_ADDR && conv_counter == 8) begin   
-            read_flag <= 1;
+        else if (CS == READ_DATA) begin
+            read_flag     <= 1'b0;
         end
-
     end
 
     //Output Logic 
     always @(*) begin
+        rx_rec_en  = 1'b0;
+        tx_ser_en  = 1'b0;
 
-        count_rst = 0;
-        count_en = 0;
-        
-        if (CS == CHK_CMD) begin
-            count_rst = 1;
+        if ((CS == WRITE || CS == READ_ADDR) || (CS == READ_DATA && !tx_valid)) begin
+            rx_rec_en = 1'b1;
         end
-        else if ( (CS == WRITE || (CS == READ_DATA) || CS == READ_ADDR) && !conv_flag) begin
-            count_en = 1;
+        else if (CS == READ_DATA && tx_valid) begin
+            tx_ser_en = 1'b1;
         end
-
         else begin 
-            count_rst = 0;
-            count_en = 0;
+            rx_rec_en  = 1'b0;
+            tx_ser_en  = 1'b0;
         end
-
     end
 
     // Output Logic
     always @(posedge CLK , negedge rst_n) begin
-
         if (!rst_n) begin
-            rx_data <= 0;
-            MISO    <= 0;
+            rx_data       <= 10'b0;
+            ser_cnt       <= 4'b0;
+            MISO          <= 1'b0;
         end
-        else if ( (CS == WRITE) || (CS == READ_ADDR) || (CS == READ_DATA && !tx_valid) ) begin
-            rx_data[conv_counter-9] <= MOSI;
+        else if (rx_rec_en && ser_cnt != 10) begin
+            rx_data       <= {rx_data[8:0],MOSI};
+            ser_cnt       <= ser_cnt + 1'b1;
         end
-        else if (CS == READ_DATA && tx_valid && !conv_flag) begin
-            MISO <= tx_data[conv_counter];
+        else if (tx_ser_en && ser_cnt != 4'd8) begin
+            MISO          <= tx_data[7-ser_cnt];
+            ser_cnt       <= ser_cnt + 1'b1;
         end
-
+        else begin
+            ser_cnt       <= 4'b0;
+        end
     end
-
-    always @(posedge CLK,negedge rst_n) begin
-        
-        if (!rst_n) begin            
-            conv_counter <= 18;
-        end
-        else if (count_rst) begin            
-            conv_counter <= 18;
-        end
-        else if (count_en) begin            
-            conv_counter <= conv_counter - 1;
-        end
-
-    end
-
-    assign rx_valid  = (conv_counter == 8)? 1'b1 : 1'b0;
-    assign conv_flag = ( (conv_counter == 8 && !read_flag) || (conv_counter == 0 && read_flag) )? 1'b1:1'b0;
     
+    assign rx_valid = (ser_cnt == 4'd10)? 1'b1:1'b0;
+
 endmodule
